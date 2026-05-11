@@ -1,0 +1,4 @@
+threat,category,likelihood,mitigation,mitre_mapping
+File Upload Vulnerability,STRIDE,High,"Use pre-signed URLs with short TTLs, never serve uploads directly from the application server, log all upload and download events with user context","T1070 Indicator Removal, T1562 Impair Defenses"
+Credential Stuffing,STRIDE,High,"Log all auth events, implement SIEM alerts, monitor for anomalous data access patterns, establish incident response playbooks",T1070 Indicator Removal
+Unauthorized File Access,STRIDE,Medium,"Implement access controls, use IAM roles, monitor for anomalous data access patterns","T1070 Indicator Removal, T1562 Impair Defenses"

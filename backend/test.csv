@@ -1,0 +1,2 @@
+threat,category,likelihood,mitigation,mitre_mapping
+JWT token theft,Spoofing,High,Use HttpOnly cookies,T1539
