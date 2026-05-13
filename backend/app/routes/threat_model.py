@@ -1,3 +1,6 @@
+import csv
+import io
+import json
 from fastapi import APIRouter, HTTPException
 from app.models.schemas import ThreatModelRequest, ThreatModelResponse, Threat
 from app.services.rag import run_rag_pipeline
@@ -8,17 +11,22 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib import colors
-import csv
-import io
-import json
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from starlette.requests import Request
+
 
 router = APIRouter()
 
+limiter = Limiter(key_func=get_remote_address)
+
+
 @router.post("/analyze", response_model=ThreatModelResponse)
-async def analyze(request: ThreatModelRequest):
+@limiter.limit("10/minute")
+async def analyze(request: Request, body: ThreatModelRequest):
     try:
         # Step 1: Check input for prompt injection
-        check_input(f"{request.architecture} {request.feature}")
+        check_input(f"{body.architecture} {body.feature}")
         # Step 2: Run the RAG pipeline
         raw_response = run_rag_pipeline(request.architecture, request.feature)
         # Step 3: Check and clean the output

@@ -1,12 +1,19 @@
 import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from app.routes.threat_model import router as threat_model_router
-
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from app.routes.threat_model import router as threat_model_router
 load_dotenv()
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+
+limiter = Limiter(key_func=get_remote_address)
+
 
 app = FastAPI(
     title="Threat Model Assistant",
@@ -17,9 +24,13 @@ app = FastAPI(
     openapi_url="/openapi.json" if os.getenv("ENVIRONMENT") == "development" else None,
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
+    response.headers["server"] = "webserver"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
@@ -33,15 +44,26 @@ async def add_security_headers(request: Request, call_next):
         response.headers["Content-Security-Policy"] = "default-src 'self'"
     return response
 
+@app.middleware("http")
+async def limit_request_size(request: Request, call_next):
+    max_body_size = 10_000  # 10KB
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > max_body_size:
+        return JSONResponse(
+            status_code=413,
+            content={"detail": "Request body too large"}
+        )
+    return await call_next(request)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:8080"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
-app.include_router(threat_model_router)
+app.include_router(threat_model_router, prefix="")
 
 @app.get("/health")
 async def health():
