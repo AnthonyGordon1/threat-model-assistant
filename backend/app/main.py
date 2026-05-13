@@ -8,8 +8,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from app.routes.threat_model import router as threat_model_router
-from app.services.logger import setup_security_logs_table
-
+from app.services.logger import setup_security_logs_table, log_security_event
 load_dotenv()
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
@@ -47,9 +46,14 @@ async def add_security_headers(request: Request, call_next):
 
 @app.middleware("http")
 async def limit_request_size(request: Request, call_next):
-    max_body_size = 10_000  # 10KB
+    max_body_size = 10_000
     content_length = request.headers.get("content-length")
     if content_length and int(content_length) > max_body_size:
+        log_security_event(
+            event_type="oversized_request",
+            ip_address=request.client.host,
+            status_code=413
+        )
         return JSONResponse(
             status_code=413,
             content={"detail": "Request body too large"}
