@@ -8,6 +8,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from app.routes.threat_model import router as threat_model_router
+from app.routes.security import router as security_router
 from app.services.logger import setup_security_logs_table, log_security_event
 load_dotenv()
 
@@ -69,6 +70,7 @@ app.add_middleware(
 )
 
 app.include_router(threat_model_router, prefix="")
+app.include_router(security_router)
 
 @app.on_event("startup")
 async def startup():
