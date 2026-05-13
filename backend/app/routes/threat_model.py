@@ -1,7 +1,7 @@
 import csv
 import io
 import json
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Security, Depends
 from app.models.schemas import ThreatModelRequest, ThreatModelResponse, Threat
 from app.services.rag import run_rag_pipeline
 from app.services.guardrails import check_input, check_output
@@ -14,7 +14,7 @@ from reportlab.lib import colors
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from starlette.requests import Request
-
+from app.services.auth import verify_api_key
 
 router = APIRouter()
 
@@ -23,12 +23,13 @@ limiter = Limiter(key_func=get_remote_address)
 
 @router.post("/analyze", response_model=ThreatModelResponse)
 @limiter.limit("10/minute")
-async def analyze(request: Request, body: ThreatModelRequest):
+async def analyze(request: Request, body: ThreatModelRequest, 
+                  api_key: str = Security(verify_api_key)):    
     try:
         # Step 1: Check input for prompt injection
         check_input(f"{body.architecture} {body.feature}")
         # Step 2: Run the RAG pipeline
-        raw_response = run_rag_pipeline(request.architecture, request.feature)
+        raw_response = run_rag_pipeline(body.architecture, body.feature)
         # Step 3: Check and clean the output
         clean_threats = check_output(raw_response)
 

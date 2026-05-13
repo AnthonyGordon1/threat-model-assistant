@@ -11,7 +11,6 @@ from app.routes.threat_model import router as threat_model_router
 load_dotenv()
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
-
 limiter = Limiter(key_func=get_remote_address)
 
 
