@@ -2,6 +2,7 @@ import json
 import base64
 import codecs
 from app.services.logger import log_security_event
+import re
 
 
 INJECTION_PATTERNS = [
@@ -17,25 +18,33 @@ INJECTION_PATTERNS = [
     "forget all instructions",
 ]
 
-def check_encoded(text: str, ip_address: str = None):
-    try:
-        decoded_b64 = base64.b64decode(text).decode('utf-8')
-        if decoded_b64 != text:
-            for pattern in INJECTION_PATTERNS:
-                if pattern in decoded_b64.lower():
-                    log_security_event(
-                        event_type="encoded_injection_base64",
-                        ip_address=ip_address,
-                        input_text=text,
-                        pattern_matched=pattern,
-                        status_code=400
-                    )
-                    raise ValueError("Potential prompt injection detected in encoded input.")
-    except ValueError:
-        raise
-    except Exception:
-        pass
 
+
+def check_encoded(text: str, ip_address: str = None):
+    # Only attempt Base64 decode if input looks like Base64
+    # Real Base64 only contains these characters
+    b64_pattern = re.compile(r'^[A-Za-z0-9+/=]+$')
+    
+    if b64_pattern.match(text):
+        try:
+            decoded_b64 = base64.b64decode(text).decode('utf-8')
+            if decoded_b64 != text:
+                for pattern in INJECTION_PATTERNS:
+                    if pattern in decoded_b64.lower():
+                        log_security_event(
+                            event_type="encoded_injection_base64",
+                            ip_address=ip_address,
+                            input_text=text,
+                            pattern_matched=pattern,
+                            status_code=400
+                        )
+                        raise ValueError("Potential prompt injection detected in encoded input.")
+        except ValueError:
+            raise
+        except Exception:
+            pass
+
+    # Check ROT13
     try:
         decoded_rot13 = codecs.decode(text, 'rot_13')
         for pattern in INJECTION_PATTERNS:
