@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Security
-from app.services.auth import verify_api_key
+from app.services.auth import verify_admin_key
 from app.db.pgvector import get_connection
 from typing import Optional
 
@@ -9,7 +9,7 @@ router = APIRouter()
 async def get_security_events(
     limit: int = 50,
     event_type: Optional[str] = None,
-    api_key: str = Security(verify_api_key)
+    api_key: str = Security(verify_admin_key)
 ):
     try:
         conn = get_connection()
@@ -46,7 +46,7 @@ async def get_security_events(
 
 
 @router.get("/security/summary")
-async def get_security_summary(api_key: str = Security(verify_api_key)):
+async def get_security_summary(api_key: str = Security(verify_admin_key)):
     try:
         conn = get_connection()
         cursor = conn.cursor()

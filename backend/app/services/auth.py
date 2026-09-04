@@ -10,6 +10,9 @@ load_dotenv()
 API_KEY = os.getenv("API_KEY")
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
+ADMIN_API_KEY = os.getenv("ADMIN_API_KEY")
+admin_key_header = APIKeyHeader(name="X-Admin-Key", auto_error=False)
+
 failed_attempts = {}
 MAX_ATTEMPTS = 10
 LOCKOUT_SECONDS = 300
@@ -48,3 +51,14 @@ async def verify_api_key(request: Request, api_key: str = Security(api_key_heade
             status_code=403
         )
         raise HTTPException(status_code=403, detail="Invalid or missing API key")
+
+async def verify_admin_key(request: Request, admin_key: str = Security(admin_key_header)):
+    if not ADMIN_API_KEY:
+        raise HTTPException(status_code=403, detail="Admin access not configured")
+    if admin_key != ADMIN_API_KEY:
+        log_security_event(
+            event_type="invalid_admin_key",
+            ip_address=request.client.host,
+            status_code=403
+        )
+        raise HTTPException(status_code=403, detail="Invalid or missing admin key")

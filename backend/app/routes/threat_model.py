@@ -43,7 +43,9 @@ async def analyze(request: Request, body: ThreatModelRequest,
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/export/csv")
-async def export_csv(response: ThreatModelResponse):
+@limiter.limit("10/minute")
+async def export_csv(request: Request, response: ThreatModelResponse, 
+                     api_key: str = Security(verify_api_key)):
     try:
         output = io.StringIO()
         writer = csv.DictWriter(output, fieldnames=[
@@ -69,7 +71,9 @@ async def export_csv(response: ThreatModelResponse):
 
 
 @router.post("/export/pdf")
-async def export_pdf(response: ThreatModelResponse):
+@limiter.limit("10/minute")
+async def export_pdf(request: Request, response: ThreatModelResponse, 
+                     api_key: str = Security(verify_api_key)):
     try:
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=letter,

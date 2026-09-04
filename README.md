@@ -148,7 +148,14 @@ DATABASE_URL=postgresql://<your-mac-username>@localhost:5432/threatmodel
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=llama3
 GROQ_API_KEY=your_groq_api_key_here
+API_KEY=client_key_for_the_analyze_and_export_endpoints
+ADMIN_API_KEY=separate_key_for_the_/security_dashboard_endpoints
 ```
+
+`API_KEY` is sent by clients in the `X-API-Key` header; if it is unset the
+protected endpoints are open (useful for local dev). `ADMIN_API_KEY` guards the
+`/security/*` dashboard endpoints via the `X-Admin-Key` header and fails closed
+when unset.
 
 Set up the database:
 
